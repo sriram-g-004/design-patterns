@@ -1,0 +1,19 @@
+// Structural Design Pattern: Adapter
+using System;
+
+class Program
+{
+    interface INewPay { void Process(double amount); }
+    class OldPay { public void Execute(double amount) => Console.WriteLine($"Old pay processed: {amount} INR"); }
+    class PayAdapter : INewPay
+    {
+        private OldPay _old = new OldPay();
+        public void Process(double amount) => _old.Execute(amount);
+    }
+
+    static void Main()
+    {
+        INewPay adapter = new PayAdapter();
+        adapter.Process(1500);
+    }
+}
