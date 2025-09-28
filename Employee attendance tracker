@@ -1,0 +1,164 @@
+// Employee Attendance Tracker
+using System;
+using System.Collections.Generic;
+
+interface IAttendanceManager
+{
+    void MarkAttendance(string employeeId, bool isPresent);
+    void GenerateReport();
+}
+
+class AttendanceRecord
+{
+    public string EmployeeId { get; }
+    public DateTime Date { get; }
+    public bool IsPresent { get; }
+
+    public AttendanceRecord(string employeeId, DateTime date, bool isPresent)
+    {
+        EmployeeId = employeeId;
+        Date = date;
+        IsPresent = isPresent;
+    }
+}
+
+class Employee
+{
+    public string Id { get; }
+    public string Name { get; }
+
+    public Employee(string id, string name)
+    {
+        Id = id;
+        Name = name;
+    }
+}
+
+// Singleton: Single instance of manager
+class AttendanceTracker : IAttendanceManager
+{
+    private static AttendanceTracker instance;
+    private Dictionary<string, Employee> employees = new();
+    private List<AttendanceRecord> records = new();
+    private DateTime currentDate = new DateTime(2025, 9, 28); // Set to September 28, 2025
+
+    private AttendanceTracker() { }
+
+    public static AttendanceTracker Instance
+    {
+        get
+        {
+            if (instance == null)
+                instance = new AttendanceTracker();
+            return instance;
+        }
+    }
+
+    // Factory: Create AttendanceRecord objects
+    class AttendanceFactory
+    {
+        public AttendanceRecord CreateRecord(string employeeId, bool isPresent)
+        {
+            return new AttendanceRecord(employeeId, DateTime.Now, isPresent);
+        }
+    }
+
+    // Observer: Notify updates
+    interface IObserver { void Update(string message); }
+    class ConsoleObserver : IObserver { public void Update(string message) => Console.WriteLine(message); }
+
+    private List<IObserver> observers = new();
+    public void AttachObserver(IObserver observer) => observers.Add(observer);
+    public void DetachObserver(IObserver observer) => observers.Remove(observer);
+    private void Notify(string message) => observers.ForEach(o => o.Update(message));
+
+    public void MarkAttendance(string employeeId, bool isPresent)
+    {
+        if (!employees.ContainsKey(employeeId))
+        {
+            Notify($"Employee {employeeId} not found.");
+            return;
+        }
+        var factory = new AttendanceFactory();
+        records.Add(factory.CreateRecord(employeeId, isPresent));
+        Notify($"Attendance marked for {employeeId}: {isPresent} on {currentDate:yyyy-MM-dd}.");
+    }
+
+    public void GenerateReport()
+    {
+        if (!records.Any())
+        {
+            Notify("No attendance records available.");
+            return;
+        }
+        Notify($"Attendance Report - Date: {currentDate:yyyy-MM-dd}");
+        var attendanceByEmployee = records.GroupBy(r => r.EmployeeId);
+        foreach (var group in attendanceByEmployee)
+        {
+            var employee = employees[group.Key];
+            var presentDays = group.Count(r => r.IsPresent);
+            var totalDays = group.Count();
+            Notify($"{employee.Name} (ID: {employee.Id}): Present {presentDays}/{totalDays} days.");
+        }
+    }
+
+    public void AddEmployee(string id, string name)
+    {
+        if (employees.ContainsKey(id))
+        {
+            Notify($"Employee {id} already exists.");
+            return;
+        }
+        employees[id] = new Employee(id, name);
+        Notify($"Employee {name} (ID: {id}) added.");
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        var tracker = AttendanceTracker.Instance;
+        tracker.AttachObserver(new ConsoleObserver());
+        Console.WriteLine("=== Employee Attendance Tracker ===");
+
+        // Pre-add some employees
+        tracker.AddEmployee("E001", "John Doe");
+        tracker.AddEmployee("E002", "Jane Smith");
+
+        while (true)
+        {
+            Console.Write("\nCommand: ");
+            var input = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input)) continue;
+
+            var parts = input.Split(' ', 3);
+            var command = parts[0].ToLower();
+
+            try
+            {
+                switch (command)
+                {
+                    case "add_employee":
+                        tracker.AddEmployee(parts[1], parts[2]);
+                        break;
+                    case "mark_attendance":
+                        tracker.MarkAttendance(parts[1], bool.Parse(parts[2]));
+                        break;
+                    case "generate_report":
+                        tracker.GenerateReport();
+                        break;
+                    case "exit":
+                        return;
+                    default:
+                        Console.WriteLine("Unknown command.");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR]: {ex.Message}");
+            }
+        }
+    }
+}
