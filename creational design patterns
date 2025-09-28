@@ -1,0 +1,33 @@
+// Creational Design Pattern: Singleton
+using System;
+
+class Program
+{
+    class PaymentTracker
+    {
+        private static PaymentTracker instance;
+
+        private PaymentTracker() { }
+
+        public static PaymentTracker Instance
+        {
+            get
+            {
+                if (instance == null)
+                    instance = new PaymentTracker();
+                return instance;
+            }
+        }
+
+        public void RecordPayment(double amount)
+        {
+            Console.WriteLine($"Recorded payment of {amount} INR");
+        }
+    }
+
+    static void Main()
+    {
+        PaymentTracker.Instance.RecordPayment(750);
+        PaymentTracker.Instance.RecordPayment(1200);
+    }
+}
